@@ -134,8 +134,16 @@ export function useMensajesEvento(eventoId: string | null): UseMensajesEventoRes
     setEnviando(true);
     setError(null);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError('Debes iniciar sesión para enviar un mensaje.');
+      setEnviando(false);
+      return false;
+    }
+
     const { error: err } = await supabase.from('mensajes_evento').insert({
       evento_id: eventoId,
+      remitente_id: user.id,
       contenido: texto,
       reply_to_id: replyToId || null
     });
