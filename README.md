@@ -1,4 +1,5 @@
-# Welcome to Your Miaoda Project
+# Welcome to Cloud UCV Project
+Project resources and external references to third-party preview services have been removed.
 
 ## Project Info
 
@@ -7,35 +8,33 @@
 ```
 ├── README.md # Documentation
 ├── components.json # Component library configuration
-├── index.html # Entry file
 ├── package.json # Package management
 ├── postcss.config.js # PostCSS configuration
 ├── public # Static resources directory
 │   ├── favicon.png # Icon
 │   └── images # Image resources
 ├── src # Source code directory
-│   ├── App.tsx # Entry file
+│   ├── app # Next.js app router directory
+│   │   ├── layout.tsx # Root layout
+│   │   ├── page.tsx # Home page entry
+│   │   └── providers.tsx # Shared providers
 │   ├── components # Components directory
-│   ├── context # Context directory
+│   ├── contexts # React context providers
 │   ├── db # Database configuration directory
 │   ├── hooks # Common hooks directory
-│   ├── index.css # Global styles
-│   ├── layout # Layout directory
+│   ├── index.css # Global styles imported by app globals
 │   ├── lib # Utility library directory
-│   ├── main.tsx # Entry file
-│   ├── routes.tsx # Routing configuration
-│   ├── pages # Pages directory
+│   ├── pages # UI pages used by AppLayout
 │   ├── services # Database interaction directory
-│   ├── types # Type definitions directory
-├── tsconfig.app.json # TypeScript frontend configuration file
+│   └── types # Type definitions directory
 ├── tsconfig.json # TypeScript configuration file
-├── tsconfig.node.json # TypeScript Node.js configuration file
-└── vite.config.ts # Vite configuration file
+├── next.config.mjs # Next.js configuration file
+└── tailwind.config.js # Tailwind CSS configuration file
 ```
 
 ## Tech Stack
 
-Vite, TypeScript, React, Supabase
+Next.js, TypeScript, React, Supabase
 
 ## Development Guidelines
 
@@ -88,4 +87,4 @@ Configure environment variables and install relevant dependencies.If you need to
 
 ## Learn More
 
-You can also check the help documentation: Download and Building the app（ [https://intl.cloud.baidu.com/en/doc/MIAODA/s/download-and-building-the-app-en](https://intl.cloud.baidu.com/en/doc/MIAODA/s/download-and-building-the-app-en)）to learn more detailed content.
+You can also check the help documentation for Next.js and Supabase as needed.

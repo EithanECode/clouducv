@@ -11,13 +11,13 @@
  */
 
 import {
+    Player,
     BigPlayButton,
     ControlBar,
     PlayToggle,
     CurrentTimeDisplay,
     TimeDivider,
     DurationDisplay,
-    FullscreenToggle,
     VolumeMenuButton,
     ProgressControl
 } from 'video-react';
@@ -102,7 +102,6 @@ display: block;
         <TimeDivider key="time-divider" />
         <DurationDisplay key="duration-display" />
         <ProgressControl key="progress-control" />
-        <FullscreenToggle key="fullscreen-toggle" />
         </ControlBar>
         <BigPlayButton position="center" />
     </Player>

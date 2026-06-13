@@ -1,4 +1,5 @@
 // Componente EventoCard para Cloud UCV
+import Image from 'next/image';
 import { useState, MouseEvent } from 'react';
 import type { FC } from 'react';
 import type { Evento } from '@/types/types';
@@ -96,7 +97,7 @@ const EventoCard: FC<EventoCardProps> = ({ evento, onClick }) => {
           `¡Mira este evento en Cloud UCV!\n${evento.titulo}\n${urlCompartir}`
         );
         toast.success('¡Enlace copiado al portapapeles!');
-      } catch (err) {
+      } catch {
         toast.error('No se pudo copiar el enlace');
       }
     }
@@ -109,11 +110,12 @@ const EventoCard: FC<EventoCardProps> = ({ evento, onClick }) => {
     >
       {/* Imagen del evento */}
       <div className="relative w-full h-44 overflow-hidden">
-        <img
+        <Image
           src={evento.imagen}
           alt={evento.titulo}
-          className="w-full h-full object-cover"
-          loading="lazy"
+          fill
+          className="object-cover"
+          unoptimized
         />
         {/* Badge de categoría */}
         <div className="absolute top-3 left-3">

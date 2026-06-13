@@ -1,4 +1,5 @@
 // Componente Header de Cloud UCV con autenticación
+import Image from 'next/image';
 import { useState, useRef, useEffect, type FC } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ModalAuth from '@/components/ucv/ModalAuth';
@@ -40,11 +41,13 @@ const Header: FC = () => {
       <div className="flex items-center justify-between px-4 py-3">
         {/* Logo y nombre */}
         <div className="flex items-center gap-3">
-          <div className="w-20 h-20 -my-2 flex items-center justify-center bg-transparent overflow-hidden shrink-0">
-            <img 
-              src="https://miaoda-conversation-file.s3cdn.medo.dev/user-c0fzjyndhc00/app-c0fzngxk3k01/20260609/imgucv.png" 
-              alt="Logo UCV" 
-              className="w-full h-full object-contain"
+          <div className="w-20 h-20 -my-2 flex items-center justify-center bg-transparent overflow-hidden shrink-0 relative">
+            <Image
+              src="/images/logo/logo-dark.svg"
+              alt="Logo UCV"
+              fill
+              className="object-contain"
+              unoptimized
             />
           </div>
           <div>
@@ -114,13 +117,13 @@ const Header: FC = () => {
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm text-white/90 text-pretty leading-tight">
                                   {esLike && (
-                                    <><span className="font-semibold text-white">{notif.actor?.username || 'Alguien'}</span> le ha dado me gusta a tu evento <span className="font-medium text-white">"{notif.evento?.titulo || 'Evento'}"</span></>
+                                    <><span className="font-semibold text-white">{notif.actor?.username || 'Alguien'}</span> le ha dado me gusta a tu evento <span className="font-medium text-white">&quot;{notif.evento?.titulo || 'Evento'}&quot;</span></>
                                   )}
                                   {esNuevoEvento && (
-                                    <>Hay un nuevo evento en tus categorías favoritas: <span className="font-semibold text-white">"{notif.evento?.titulo || 'Evento'}"</span> subido por <span className="font-medium text-white">{notif.actor?.username || 'Alguien'}</span></>
+                                    <>Hay un nuevo evento en tus categorías favoritas: <span className="font-semibold text-white">&quot;{notif.evento?.titulo || 'Evento'}&quot;</span> subido por <span className="font-medium text-white">{notif.actor?.username || 'Alguien'}</span></>
                                   )}
                                   {!esLike && !esNuevoEvento && (
-                                    <>{notif.tipo} en <span className="font-semibold text-white">"{notif.evento?.titulo || 'Evento'}"</span></>
+                                    <>{notif.tipo} en <span className="font-semibold text-white">&quot;{notif.evento?.titulo || 'Evento'}&quot;</span></>
                                   )}
                                 </p>
                                 <p className="text-[10px] text-lavender mt-1">
@@ -142,12 +145,15 @@ const Header: FC = () => {
           {user ? (
             // Avatar con iniciales o imagen del usuario autenticado
             profile?.avatar_url ? (
-              <img 
-                src={profile.avatar_url} 
-                alt={profile.username}
-                className="w-9 h-9 rounded-full object-cover border border-white/10"
-                title={profile.username}
-              />
+              <div className="relative w-9 h-9 rounded-full overflow-hidden border border-white/10">
+                <Image
+                  src={profile.avatar_url}
+                  alt={profile.username}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
             ) : (
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white border border-white/10"

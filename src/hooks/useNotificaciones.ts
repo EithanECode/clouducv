@@ -1,120 +1,68 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/db/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import type { NotificacionRow } from '@/types/types';
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import type { NotificacionRow } from '@/types/types'
 
 export function useNotificaciones() {
-  const { user } = useAuth();
-  const [notificaciones, setNotificaciones] = useState<NotificacionRow[]>([]);
-  const [noLeidas, setNoLeidas] = useState(0);
-  const [cargando, setCargando] = useState(true);
+  const { user } = useAuth()
+  const [notificaciones, setNotificaciones] = useState<NotificacionRow[]>([])
+  const [noLeidas, setNoLeidas] = useState(0)
+  const [cargando, setCargando] = useState(true)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const fetchNotificaciones = async () => {
+  const fetchNotificaciones = useCallback(async () => {
     if (!user) {
-      setNotificaciones([]);
-      setNoLeidas(0);
-      setCargando(false);
-      return;
+      setNotificaciones([])
+      setNoLeidas(0)
+      setCargando(false)
+      return
     }
 
     try {
-      const { data, error } = await supabase
-        .from('notificaciones')
-        .select(`
-          id, user_id, actor_id, evento_id, tipo, leida, created_at,
-          actor:profiles!actor_id(username),
-          evento:eventos(titulo)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const res = await fetch('/api/notificaciones', { credentials: 'include' })
+      if (!res.ok) throw new Error('Error al cargar notificaciones')
 
-      if (error) throw error;
+      const data = await res.json()
+      const filas = Array.isArray(data) ? (data as NotificacionRow[]) : []
 
-      // Transformar datos para aplanar las relaciones si es necesario
-      const notifsTransformadas = (data || []).map((n: any) => ({
-        ...n,
-        actor: Array.isArray(n.actor) ? n.actor[0] : n.actor,
-        evento: Array.isArray(n.evento) ? n.evento[0] : n.evento,
-      })) as NotificacionRow[];
-
-      setNotificaciones(notifsTransformadas);
-      setNoLeidas(notifsTransformadas.filter(n => !n.leida).length);
-    } catch (error) {
-      console.error('Error fetching notificaciones:', error);
+      setNotificaciones(filas)
+      setNoLeidas(filas.filter(t => !t.leida).length)
+    } catch (err) {
+      console.error('Error fetching notificaciones:', err)
     } finally {
-      setCargando(false);
+      setCargando(false)
     }
-  };
+  }, [user])
 
   useEffect(() => {
-    fetchNotificaciones();
+    fetchNotificaciones()
 
-    if (!user) return;
+    if (!user) return
 
-    // Suscribirse a cambios en tiempo real en la tabla notificaciones
-    const channel = supabase
-      .channel('notificaciones-cambios')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notificaciones',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          // Recargar las notificaciones cuando hay un INSERT
-          // Se podría agregar directamente al array local, pero recargar garantiza obtener
-          // los datos con los JOINs actualizados (actor y evento).
-          fetchNotificaciones();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notificaciones',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          setNotificaciones((prev) => 
-            prev.map((n) => n.id === payload.new.id ? { ...n, ...payload.new } : n)
-          );
-          // Recalcular noLeidas
-          setNoLeidas((prev) => {
-            const oldValue = payload.old?.leida ?? false;
-            const newValue = payload.new?.leida ?? false;
-            if (!oldValue && newValue) return Math.max(0, prev - 1);
-            if (oldValue && !newValue) return prev + 1;
-            return prev;
-          });
-        }
-      )
-      .subscribe();
+    // Polling cada 10 segundos (reemplaza Realtime)
+    intervalRef.current = setInterval(() => {
+      fetchNotificaciones()
+    }, 10000)
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [user, fetchNotificaciones])
 
   const marcarComoLeidas = async () => {
-    if (!user || noLeidas === 0) return;
+    if (!user || noLeidas === 0) return
+    setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))
+    setNoLeidas(0)
 
-    // Actualización optimista
-    setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })));
-    setNoLeidas(0);
-
-    const unreadIds = notificaciones.filter(n => !n.leida).map(n => n.id);
-    
+    const unreadIds = notificaciones.filter(n => !n.leida).map(n => n.id)
     if (unreadIds.length > 0) {
-      await supabase
-        .from('notificaciones')
-        .update({ leida: true })
-        .in('id', unreadIds);
+      await fetch('/api/notificaciones', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ids: unreadIds }),
+      })
     }
-  };
+  }
 
-  return { notificaciones, noLeidas, cargando, marcarComoLeidas, recargar: fetchNotificaciones };
+  return { notificaciones, noLeidas, cargando, marcarComoLeidas, recargar: fetchNotificaciones }
 }

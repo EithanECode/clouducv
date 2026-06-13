@@ -1,7 +1,7 @@
-// Hook para obtener eventos desde Supabase
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Hook para obtener eventos desde API local
 import { useState, useEffect } from 'react';
-import { supabase } from '@/db/supabase';
-import type { Evento, EventoRow } from '@/types/types';
+import type { Evento } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UseEventosResult {
@@ -25,60 +25,31 @@ export function useEventos(): UseEventosResult {
       setCargando(true);
       setError(null);
 
-      // 1. Fetch de los eventos con likes y descripcion
-      const { data, error: supabaseError } = await supabase
-        .from('eventos')
-        .select('id, titulo, categoria, descripcion, fecha, hora, asistentes, imagen, avatares, direccion, likes, created_at, user_id')
-        .order('created_at', { ascending: true });
+      try {
+        const res = await fetch('/api/eventos', { credentials: 'include' });
+        if (!res.ok) throw new Error('Error al cargar eventos');
 
-      if (cancelado) return;
+        const data = await res.json();
+        if (cancelado) return;
 
-      if (supabaseError) {
-        setError('No se pudieron cargar los eventos. Intenta nuevamente.');
-        setCargando(false);
-        return;
+        const eventosConEstado: Evento[] = (data as any[]).map((row) => ({
+          ...row,
+          likes: row.likes || 0,
+          guardado: row.guardado || false,
+          like_local: row.like_local || false,
+        }));
+
+        setEventos(eventosConEstado);
+      } catch {
+        if (!cancelado) setError('No se pudieron cargar los eventos. Intenta nuevamente.');
+      } finally {
+        if (!cancelado) setCargando(false);
       }
-
-      const rows = (Array.isArray(data) ? data : []) as EventoRow[];
-      
-      let likesSet = new Set<string>();
-      let guardadosSet = new Set<string>();
-
-      // 2. Si hay usuario, hacer fetch de sus likes y eventos guardados
-      if (user) {
-        const [likesRes, guardadosRes] = await Promise.all([
-          supabase.from('likes_evento').select('evento_id').eq('user_id', user.id),
-          supabase.from('eventos_guardados').select('evento_id').eq('user_id', user.id)
-        ]);
-        
-        if (likesRes.data) {
-          likesSet = new Set(likesRes.data.map(r => r.evento_id));
-        }
-        if (guardadosRes.data) {
-          guardadosSet = new Set(guardadosRes.data.map(r => r.evento_id));
-        }
-      }
-      
-      if (cancelado) return;
-
-      // 3. Mapear al tipo Evento con el estado del usuario actual
-      const eventosConEstado: Evento[] = rows.map((row) => ({
-        ...row,
-        // Si el valor no viene de la BD, asegura 0
-        likes: row.likes || 0,
-        guardado: guardadosSet.has(row.id),
-        like_local: likesSet.has(row.id)
-      }));
-
-      setEventos(eventosConEstado);
-      setCargando(false);
     };
 
     fetchEventos();
 
-    return () => {
-      cancelado = true;
-    };
+    return () => { cancelado = true; };
   }, [contador, user]);
 
   const recargar = () => setContador((c) => c + 1);

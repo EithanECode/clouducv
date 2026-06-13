@@ -1,6 +1,5 @@
-// Hook para eliminar un evento propio en Supabase
+// Hook para eliminar un evento propio via API local
 import { useState } from 'react';
-import { supabase } from '@/db/supabase';
 
 interface UseEliminarEventoResult {
   eliminando: boolean;
@@ -17,29 +16,25 @@ export function useEliminarEvento(): UseEliminarEventoResult {
     setEliminando(true);
     setError(null);
 
-    // Verificar sesión activa en el cliente
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError('Debes iniciar sesión para eliminar un evento.');
-      setEliminando(false);
-      return false;
-    }
+    try {
+      const res = await fetch(`/api/eventos/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-    const { error: supabaseError } = await supabase
-      .from('eventos')
-      .delete()
-      // RLS garantiza que solo el dueño (user_id = auth.uid()) puede hacer DELETE
-      .eq('id', id)
-      .eq('user_id', user.id);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Error al eliminar el evento.');
+        return false;
+      }
 
-    setEliminando(false);
-
-    if (supabaseError) {
+      return true;
+    } catch {
       setError('Error al eliminar el evento. Intenta nuevamente.');
       return false;
+    } finally {
+      setEliminando(false);
     }
-
-    return true;
   };
 
   const resetError = () => setError(null);

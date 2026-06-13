@@ -1,27 +1,19 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { supabase } from '@/db/supabase';
-import type { User } from '@supabase/supabase-js';
+"use client"
+
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { Profile } from '@/types/types';
 
-export async function getProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, email, role, categorias_favoritas, avatar_url, created_at')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error al obtener perfil:', error);
-    return null;
-  }
-  return data as Profile | null;
+// Tipo local que reemplaza el User de Supabase
+interface LocalUser {
+  id: string;
+  email: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: LocalUser | null;
   profile: Profile | null;
   loading: boolean;
-  signInWithUsername: (username: string, password: string) => Promise<{ error: string | null }>;
+  signInWithUsername: (loginId: string, password: string) => Promise<{ error: string | null }>;
   signUpWithUsername: (username: string, email: string, password: string) => Promise<{ error: string | null }>;
   resetPasswordForEmail: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -30,99 +22,138 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export async function getProfile(): Promise<Profile | null> {
+  try {
+    const res = await fetch('/api/profiles', { credentials: 'include' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data as Profile;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<LocalUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshProfile = async () => {
-    if (!user) { setProfile(null); return; }
-    const p = await getProfile(user.id);
-    setProfile(p);
-  };
-
+  // Cargar sesión al montar
   useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) getProfile(session.user.id).then(setProfile);
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser({ id: data.user.id, email: data.user.email });
+          setProfile({
+            id: data.user.id,
+            username: data.user.username,
+            email: data.user.email,
+            role: data.user.role,
+            categorias_favoritas: data.user.categorias_favoritas,
+            avatar_url: data.user.avatar_url,
+            created_at: data.user.created_at,
+          });
+        }
       })
+      .catch(console.error)
       .finally(() => setLoading(false));
-
-    // En este listener NO usar await — usar .then() para evitar deadlocks
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        getProfile(session.user.id).then(setProfile);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    if (!user) { setProfile(null); return; }
+    const p = await getProfile();
+    setProfile(p);
+  }, [user]);
+
   const signInWithUsername = async (loginId: string, password: string): Promise<{ error: string | null }> => {
-    const isEmail = loginId.includes('@');
-    let emailToUse = loginId;
-
-    if (!isEmail) {
-      // Intentar encontrar el email correspondiente al username o probar el formato anterior
-      const { data } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('username', loginId)
-        .maybeSingle();
-
-      if (data?.email && !data.email.endsWith('@miaoda.com')) {
-        emailToUse = data.email;
-      } else {
-        // Fallback for previous simulated users
-        emailToUse = `${loginId}@miaoda.com`;
-      }
+    if (!loginId.includes('@')) {
+      return { error: 'Por favor ingresa tu correo electrónico' };
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
-    if (!error) return { error: null };
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: loginId, password }),
+      });
 
-    const msg = error.message.toLowerCase();
-    if (msg.includes('invalid') || msg.includes('credentials')) return { error: 'Usuario o contraseña incorrectos' };
-    if (msg.includes('not found') || msg.includes('no user')) return { error: 'Usuario no encontrado' };
-    return { error: 'Error de conexión. Intenta nuevamente.' };
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { error: data.error || 'Error al iniciar sesión' };
+      }
+
+      // Guardar token en localStorage como respaldo
+      if (data.token) {
+        localStorage.setItem('auth-token', data.token);
+      }
+
+      setUser({ id: data.user.id, email: data.user.email });
+      setProfile({
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        role: data.user.role,
+        categorias_favoritas: data.user.categorias_favoritas,
+        avatar_url: data.user.avatar_url,
+        created_at: data.user.created_at,
+      });
+
+      return { error: null };
+    } catch {
+      return { error: 'Error de conexión. Intenta nuevamente.' };
+    }
   };
 
   const signUpWithUsername = async (username: string, email: string, password: string): Promise<{ error: string | null }> => {
-    // Verificar si el username ya existe
-    const { data } = await supabase.from('profiles').select('id').eq('username', username).maybeSingle();
-    if (data) {
-      return { error: 'El nombre de usuario ya está en uso' };
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { error: data.error || 'Error al registrar' };
+      }
+
+      if (data.token) {
+        localStorage.setItem('auth-token', data.token);
+      }
+
+      setUser({ id: data.user.id, email: data.user.email });
+      setProfile({
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        role: data.user.role,
+        categorias_favoritas: data.user.categorias_favoritas,
+        avatar_url: data.user.avatar_url,
+        created_at: data.user.created_at,
+      });
+
+      return { error: null };
+    } catch {
+      return { error: 'Error al crear la cuenta. Intenta nuevamente.' };
     }
-
-    // Pasamos username en metadata para que handle_new_user lo pueda usar
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } },
-    });
-
-    if (!error) return { error: null };
-
-    const msg = error.message.toLowerCase();
-    if (msg.includes('already') || msg.includes('registered')) return { error: 'El correo electrónico ya está registrado' };
-    return { error: 'Error al crear la cuenta. Intenta nuevamente.' };
   };
 
-  const resetPasswordForEmail = async (email: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    });
-    if (error) return { error: 'Error al enviar el enlace. Intenta nuevamente.' };
-    return { error: null };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const resetPasswordForEmail = async (_email: string): Promise<{ error: string | null }> => {
+    // En modo offline no hay reset por email. Informar al usuario.
+    return { error: 'Reset de contraseña no disponible en modo offline' };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await fetch('/api/auth/me', { method: 'DELETE', credentials: 'include' });
+    } catch { /* ignore */ }
+    localStorage.removeItem('auth-token');
     setUser(null);
     setProfile(null);
   };

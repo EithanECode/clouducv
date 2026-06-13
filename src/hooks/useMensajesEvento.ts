@@ -1,6 +1,5 @@
-// Hook para comentarios de eventos con Realtime
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/db/supabase';
+// Hook para comentarios de eventos con polling (reemplaza Realtime)
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MensajeEvento } from '@/types/types';
 
 interface UseMensajesEventoResult {
@@ -19,106 +18,42 @@ export function useMensajesEvento(eventoId: string | null): UseMensajesEventoRes
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const cargarMensajes = useCallback(async () => {
     if (!eventoId) return;
-    setCargando(true);
-    setError(null);
 
-    const { data, error: err } = await supabase
-      .from('mensajes_evento')
-      .select(`
-        id, 
-        evento_id, 
-        remitente_id, 
-        contenido, 
-        created_at, 
-        reply_to_id,
-        profiles!mensajes_evento_remitente_id_fkey(username, avatar_url),
-        likes:likes_mensaje(count)
-      `)
-      .eq('evento_id', eventoId)
-      .order('created_at', { ascending: true }) // Dejamos que ascienda en BD y agrupamos en React
-      .limit(100);
+    try {
+      const res = await fetch(`/api/eventos/${eventoId}/mensajes`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Error al cargar mensajes');
 
-    setCargando(false);
-    if (err) {
+      const data = await res.json();
+      setMensajes(data as MensajeEvento[]);
+    } catch (err) {
       console.error(err);
-      setError('No se pudieron cargar los comentarios.');
-      return;
     }
-    
-    // Necesitamos cargar el nombre del usuario al que se le responde si hay reply_to_id
-    let mensajesProcesados = Array.isArray(data) ? (data as unknown as MensajeEvento[]) : [];
-    
-    // Un simple mapeo para obtener el nombre del usuario padre
-    const mensajesMap = new Map(mensajesProcesados.map(m => [m.id, m]));
-    mensajesProcesados = mensajesProcesados.map(m => {
-      if (m.reply_to_id && mensajesMap.has(m.reply_to_id)) {
-        const parentMsg = mensajesMap.get(m.reply_to_id);
-        if (parentMsg && parentMsg.profiles) {
-           m.reply_to = { profiles: parentMsg.profiles };
-        }
-      }
-      return m;
-    });
-    
-    setMensajes(mensajesProcesados);
   }, [eventoId]);
 
-  // Cargar al montar o cuando cambia el eventoId
+  // Cargar al montar
   useEffect(() => {
     if (!eventoId) { setMensajes([]); return; }
-    cargarMensajes();
+    setCargando(true);
+    setError(null);
+    cargarMensajes().finally(() => setCargando(false));
   }, [eventoId, cargarMensajes]);
 
-  // Suscripción Realtime para mensajes en tiempo real
+  // Polling cada 5 segundos (reemplaza Realtime)
   useEffect(() => {
     if (!eventoId) return;
 
-    const channel = supabase
-      .channel(`mensajes-evento-${eventoId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'mensajes_evento',
-          filter: `evento_id=eq.${eventoId}`,
-        },
-        async (payload) => {
-          // Enriquecer el nuevo mensaje con el username y avatar del remitente
-          const nuevo = payload.new as MensajeEvento;
-          const { data: perfilData } = await supabase
-            .from('profiles')
-            .select('username, avatar_url')
-            .eq('id', nuevo.remitente_id)
-            .maybeSingle();
-
-          setMensajes((prev) => {
-            // Evitar duplicados
-            if (prev.some((m) => m.id === nuevo.id)) return prev;
-            
-            const msgToInsert = { ...nuevo, profiles: perfilData, likes: [{ count: 0 }] } as MensajeEvento;
-            
-            // Asignar reply_to si corresponde
-            if (msgToInsert.reply_to_id) {
-              const parentMsg = prev.find(p => p.id === msgToInsert.reply_to_id);
-              if (parentMsg && parentMsg.profiles) {
-                msgToInsert.reply_to = { profiles: parentMsg.profiles };
-              }
-            }
-            
-            return [...prev, msgToInsert];
-          });
-        }
-      )
-      .subscribe();
+    intervalRef.current = setInterval(() => {
+      cargarMensajes();
+    }, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [eventoId]);
+  }, [eventoId, cargarMensajes]);
 
   const enviarMensaje = async (contenido: string, replyToId?: string): Promise<boolean> => {
     if (!eventoId) return false;
@@ -136,77 +71,55 @@ export function useMensajesEvento(eventoId: string | null): UseMensajesEventoRes
     setEnviando(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError('Debes iniciar sesión para enviar un mensaje.');
+    try {
+      const res = await fetch(`/api/eventos/${eventoId}/mensajes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ contenido: texto, reply_to_id: replyToId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Error al enviar el comentario.');
+        return false;
+      }
+
+      const nuevoMsg = await res.json();
+      setMensajes(prev => {
+        if (prev.some(m => m.id === nuevoMsg.id)) return prev;
+        return [...prev, nuevoMsg];
+      });
+
+      return true;
+    } catch {
+      setError('Error al enviar el comentario.');
+      return false;
+    } finally {
       setEnviando(false);
-      return false;
     }
-
-    const { error: err } = await supabase.from('mensajes_evento').insert({
-      evento_id: eventoId,
-      remitente_id: user.id,
-      contenido: texto,
-      reply_to_id: replyToId || null
-    });
-
-    setEnviando(false);
-    if (err) {
-      console.error('Error enviando comentario:', err);
-      // Extraemos el error del RLS si lo hubiese, u otro motivo
-      setError(`Error al enviar el comentario: ${err.message}`);
-      return false;
-    }
-    return true;
   };
 
   const toggleLikeMensaje = async (mensajeId: string): Promise<boolean> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return false;
-    
-    // Check if like exists
-    const { data: existingLike } = await supabase
-      .from('likes_mensaje')
-      .select('mensaje_id')
-      .eq('mensaje_id', mensajeId)
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-      
-    if (existingLike) {
-      const { error } = await supabase
-        .from('likes_mensaje')
-        .delete()
-        .eq('mensaje_id', mensajeId)
-        .eq('user_id', session.user.id);
-      return !error;
-    } else {
-      const { error } = await supabase
-        .from('likes_mensaje')
-        .insert({ mensaje_id: mensajeId, user_id: session.user.id });
-      return !error;
+    try {
+      const res = await fetch(`/api/eventos/${eventoId}/mensajes/${mensajeId}/like`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      return res.ok;
+    } catch {
+      return false;
     }
   };
 
   const getMensajeLikes = async (mensajeId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const { count } = await supabase
-      .from('likes_mensaje')
-      .select('*', { count: 'exact', head: true })
-      .eq('mensaje_id', mensajeId);
-      
-    let userLiked = false;
-    if (session?.user) {
-      const { data } = await supabase
-        .from('likes_mensaje')
-        .select('mensaje_id')
-        .eq('mensaje_id', mensajeId)
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-      userLiked = !!data;
+    try {
+      const res = await fetch(`/api/eventos/${eventoId}/mensajes/${mensajeId}/like`, { credentials: 'include' });
+      if (!res.ok) return { count: 0, userLiked: false };
+      return await res.json();
+    } catch {
+      return { count: 0, userLiked: false };
     }
-    
-    return { count: count || 0, userLiked };
   };
 
   const resetError = useCallback(() => setError(null), []);

@@ -1,39 +1,40 @@
+"use client"
+
 // Layout principal de Cloud UCV con navegación inferior
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { FC } from 'react';
 import type { TabNavegacion } from '@/types/types';
 import Header from '@/components/ucv/Header';
 import BottomNav from '@/components/ucv/BottomNav';
-import InicioPagina from '@/pages/InicioPagina';
-import ExplorarPagina from '@/pages/ExplorarPagina';
-import CalendarioPagina from '@/pages/CalendarioPagina';
-import PerfilPagina from '@/pages/PerfilPagina';
-import DetalleEventoPagina from '@/pages/DetalleEventoPagina';
+import InicioPagina from '@/app/screens/InicioPagina';
+import ExplorarPagina from '@/app/screens/ExplorarPagina';
+import CalendarioPagina from '@/app/screens/CalendarioPagina';
+import PerfilPagina from '@/app/screens/PerfilPagina';
+import DetalleEventoPagina from '@/app/screens/DetalleEventoPagina';
 
 const AppLayout: FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [tabActivo, setTabActivo] = useState<TabNavegacion>('inicio');
   
   // Revisamos si hay un evento en la URL al iniciar
   const [detalleEventoId, setDetalleEventoId] = useState<string | null>(
-    searchParams.get('evento')
+    searchParams?.get('evento') ?? null
   );
 
   useEffect(() => {
-    const id = searchParams.get('evento');
-    if (id) {
-      setDetalleEventoId(id);
-    }
+    const id = searchParams?.get('evento') ?? null;
+    setDetalleEventoId(id);
   }, [searchParams]);
 
   const handleVerDetalle = (id: string) => {
-    setSearchParams({ evento: id });
+    router.push(`/?evento=${id}`);
     setDetalleEventoId(id);
   };
   
   const handleVolverDetalle = () => {
-    setSearchParams({});
+    router.push('/');
     setDetalleEventoId(null);
   };
 
@@ -63,7 +64,7 @@ const AppLayout: FC = () => {
 
   const handleTabChange = (tab: TabNavegacion) => {
     // Salir del detalle al cambiar de tab
-    setSearchParams({});
+    router.push('/');
     setDetalleEventoId(null);
     setTabActivo(tab);
   };

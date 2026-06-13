@@ -2,7 +2,7 @@
 
 export type Categoria = 'Todos' | 'Académicos' | 'Culturales' | 'Deportivos' | 'Comerciales';
 
-// Tipo para la tabla profiles de Supabase
+// Tipo para la tabla profiles (SQLite local)
 export interface Profile {
   id: string;
   username: string;
@@ -13,7 +13,7 @@ export interface Profile {
   created_at: string;
 }
 
-// Tipo que mapea exactamente la estructura de la tabla Supabase
+// Tipo que mapea la estructura de la tabla eventos
 export interface EventoRow {
   id: string;
   titulo: string;

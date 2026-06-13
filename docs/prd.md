@@ -106,7 +106,7 @@ Cloud UCV - Eventos Universitarios
 
 **Botón de acción:**
 - Texto: \"Iniciar sesión\"
-- Al hacer clic: validar campos y autenticar con Supabase Auth usando método username+password (simulando @miaoda.com)
+- Al hacer clic: validar campos y autenticar con Supabase Auth usando método username+password (simulando un dominio de ejemplo)
 
 **Link adicional:**
 - Texto: \"¿Olvidaste tu contraseña?\"
@@ -681,7 +681,7 @@ Insertar en Supabase los siguientes eventos:
 ### 4.2 Autenticación con Supabase Auth
 
 #### 4.2.1 Método de Autenticación
-- Método: username + email + password (simulando @miaoda.com)
+- Método: username + email + password (simulando un dominio de ejemplo)
 - Sin verificación de email (deshabilitada en configuración de Supabase Auth)
 - Email utilizado para recuperación de contraseña
 

@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/db/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -8,24 +7,26 @@ export function useGuardar() {
   const [cargando, setCargando] = useState<Record<string, boolean>>({});
 
   const toggleGuardado = useCallback(async (eventoId: string): Promise<boolean | null> => {
-    if (!user) return null; // No autenticado
-
+    if (!user) return null;
     if (cargando[eventoId]) return null;
     
     setCargando(prev => ({ ...prev, [eventoId]: true }));
     
     try {
-      const { data, error } = await supabase.rpc('toggle_guardado', { p_evento_id: eventoId });
+      const res = await fetch(`/api/eventos/${eventoId}/guardar`, {
+        method: 'POST',
+        credentials: 'include',
+      });
       
-      if (error) {
-        console.error('Error al hacer toggle de guardado:', error);
+      if (!res.ok) {
         toast.error('No se pudo actualizar el estado del evento');
         return null;
       }
       
-      return data as boolean; // Devuelve true si se guardó, false si se quitó
-    } catch (e) {
-      console.error('Excepción al hacer toggle de guardado:', e);
+      const data = await res.json();
+      return data.guardado as boolean;
+    } catch {
+      toast.error('No se pudo actualizar el estado del evento');
       return null;
     } finally {
       setCargando(prev => ({ ...prev, [eventoId]: false }));

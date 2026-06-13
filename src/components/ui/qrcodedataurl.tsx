@@ -12,6 +12,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import QRCode from 'qrcode';
 
 interface QRCodeDataUrlProps {
@@ -81,11 +82,12 @@ const QRCodeDataUrl: React.FC<QRCodeDataUrlProps> = ({
   return (
     <div className={`qr-code-container ${className}`}>
       {dataUrl ? (
-        <img
+        <Image
           src={dataUrl}
           alt={`QR Code: ${text}`}
           width={width}
           height={width}
+          unoptimized
         />
       ) : (
         <div>Generating QR code...</div>

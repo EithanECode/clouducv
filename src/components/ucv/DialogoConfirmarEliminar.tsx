@@ -67,7 +67,7 @@ const DialogoConfirmarEliminar: FC<DialogoConfirmarEliminarProps> = ({
           {/* Mensaje */}
           <p className="text-lavender text-sm text-center text-pretty leading-relaxed">
             ¿Estás seguro de que deseas eliminar el evento{' '}
-            <span className="text-white font-semibold">"{eventoTitulo}"</span>?
+            <span className="text-white font-semibold">&quot;{eventoTitulo}&quot;</span>?
             {' '}Esta acción no se puede deshacer.
           </p>
 
