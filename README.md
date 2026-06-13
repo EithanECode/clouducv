@@ -34,7 +34,7 @@ Project resources and external references to third-party preview services have b
 
 ## Tech Stack
 
-Next.js, TypeScript, React, Supabase
+Next.js, TypeScript, React, better-sqlite3 (100% Offline SQLite)
 
 ## Development Guidelines
 
@@ -72,19 +72,30 @@ Alternatively, use the official installer: Visit the Node.js official website. D
 
 ### After installation, follow these steps:
 
+```bash
+# Step 1: Download and extract the code package
+# Step 2: Open the code package with your IDE and navigate into the code directory
+# Step 3: Install dependencies:
+npm install
+
+# Step 4: Start the development server:
+npm run dev
 ```
-# Step 1: Download the code package
-# Step 2: Extract the code package
-# Step 3: Open the code package with your IDE and navigate into the code directory
-# Step 4: In the IDE terminal, run the command to install dependencies: npm i
-# Step 5: In the IDE terminal, run the command to start the development server: npm run dev -- --host 127.0.0.1
-# Step 6: if step 5 failed, try this command to start the development server: npx vite --host 127.0.0.1
-```
+
+> **Note on Database & Mock Data:**
+> The first time you run `npm run dev` and open `http://localhost:3000`, the application will automatically create a local SQLite database (`data/clouducv.db`) and seed it with 5 mock events and 4 demo users. You do **not** need any external services to run this app.
+> 
+> **Demo Users:**
+> - `admin@ucv.edu.ve` (Password: `admin123`)
+> - `maria@ucv.edu.ve` (Password: `maria123`)
+> - `carlos@ucv.edu.ve` (Password: `carlos123`)
+> - `ana@ucv.edu.ve` (Password: `ana123`)
 
 ### How to develop backend services?
 
-Configure environment variables and install relevant dependencies.If you need to use a database, please use the official version of Supabase.
+This project uses **Next.js API Routes** and a local **SQLite** database (`better-sqlite3`). 
+All database logic is handled entirely offline. The database schemas and seed data can be found and modified in `src/db/database.ts`.
 
 ## Learn More
 
-You can also check the help documentation for Next.js and Supabase as needed.
+You can check the help documentation for Next.js and better-sqlite3.
