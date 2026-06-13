@@ -199,26 +199,31 @@ function seedDatabase(db: Database.Database): void {
     const ev3 = generateId();
     const ev4 = generateId();
     const ev5 = generateId();
+    const ev6 = generateId();
 
-    insertEvento.run(ev1, 'Congreso de Ingeniería de Software 2026', 'Académicos', '2026-07-15', '9:00 AM',
-      'Conferencias sobre las últimas tendencias en desarrollo de software, arquitectura de sistemas y metodologías ágiles. Ponentes internacionales y talleres prácticos.',
+    insertEvento.run(ev1, 'Festival Universitario de Arte', 'Culturales', '2026-07-15', '4:00 PM',
+      'Festival Universitario de Arte con exposiciones y presentaciones artísticas.',
+      120, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_42dbeeaa-8abb-4162-a0c7-d11855f2a132.jpg', '["#D946EF","#A855F7","#FF6B9D"]', 'Plaza del Rectorado', 28, userId1);
+
+    insertEvento.run(ev2, 'Simposio de Innovación 2025', 'Académicos', '2026-07-20', '9:00 AM',
+      'Conferencias sobre las últimas tendencias en innovación y tecnología.',
       45, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8d9b64f4-18b1-4183-8598-a0520a34a4e0.jpg', '["#3B82F6","#06B6D4","#8B5CF6"]', 'Aula Magna, UCV', 12, adminId);
 
-    insertEvento.run(ev2, 'Festival Cultural Universitario', 'Culturales', '2026-07-20', '5:00 PM',
-      'Noche de presentaciones artísticas: danza, teatro, música y poesía. ¡Ven a disfrutar del talento ucevista!',
-      120, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8424ffc3-1547-4313-a45c-92085ea3273a.jpg', '["#D946EF","#A855F7","#FF6B9D"]', 'Plaza del Rectorado', 28, userId1);
+    insertEvento.run(ev3, 'Copa UCV de Básquetbol', 'Deportivos', '2026-08-01', '2:00 PM',
+      'Gran torneo de básquetbol entre las facultades de la UCV. ¡Ven a apoyar a tu equipo!',
+      200, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_3cea41de-79a4-4cee-b194-898eee92cf5c.jpg', '["#10B981","#F59E0B","#34D399"]', 'Cancha Múltiple UCV', 55, userId2);
 
-    insertEvento.run(ev3, 'Torneo Interfacultades de Fútbol', 'Deportivos', '2026-08-01', '2:00 PM',
-      'Gran torneo de fútbol entre las facultades de la UCV. Inscripciones abiertas para equipos de 11 jugadores.',
-      200, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_e25eaacf-0471-4668-aa28-7624012722eb.jpg', '["#10B981","#F59E0B","#34D399"]', 'Estadio UCV', 55, userId2);
+    insertEvento.run(ev4, 'Torneo Interuniversitario de Fútbol', 'Deportivos', '2026-08-10', '10:00 AM',
+      'Gran torneo de fútbol con equipos de diversas universidades invitadas.',
+      80, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_e25eaacf-0471-4668-aa28-7624012722eb.jpg', '["#F59E0B","#F97316","#EF4444"]', 'Estadio Olímpico UCV', 15, userId3);
 
-    insertEvento.run(ev4, 'Feria de Emprendimiento UCV', 'Comerciales', '2026-08-10', '10:00 AM',
-      'Expositores estudiantiles presentan sus startups y proyectos de negocio. Inversionistas y mentores disponibles.',
-      80, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8d9b64f4-18b1-4183-8598-a0520a34a4e0.jpg', '["#F59E0B","#F97316","#EF4444"]', 'Centro Comercial UCV', 15, userId3);
+    insertEvento.run(ev5, 'Concierto Sinfónico UCV', 'Culturales', '2026-07-25', '5:00 PM',
+      'Concierto magistral de la Orquesta Sinfónica de la universidad.',
+      150, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8424ffc3-1547-4313-a45c-92085ea3273a.jpg', '["#D946EF","#A855F7","#FF6B9D"]', 'Aula Magna', 35, adminId);
 
-    insertEvento.run(ev5, 'Taller de Inteligencia Artificial', 'Académicos', '2026-07-25', '3:00 PM',
-      'Taller práctico de IA con Python, TensorFlow y modelos de lenguaje. Requisitos: laptop con Python 3.10+.',
-      35, 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8d9b64f4-18b1-4183-8598-a0520a34a4e0.jpg', '["#3B82F6","#06B6D4","#8B5CF6"]', 'Lab. de Computación, Fac. Ingeniería', 8, adminId);
+    insertEvento.run(ev6, 'MASTERCLASS: INTRODUCCIÓN A LA IA Y TECNICAS DE OPTIMIZACION DE PROMPTS', 'Académicos', '2026-08-05', '3:00 PM',
+      'Masterclass especial sobre Inteligencia Artificial generativa y las mejores técnicas para creación de Prompts efectivos.',
+      250, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1_QCnx-iWb08RS9bYzjrEcxOjnoteYlTZ7eMsBGnN&s', '["#3B82F6","#06B6D4","#8B5CF6"]', 'Auditorio de Ciencias', 40, adminId);
 
     // ===== Algunos likes de ejemplo =====
     const insertLike = db.prepare('INSERT INTO likes_evento (id, evento_id, user_id) VALUES (?, ?, ?)');

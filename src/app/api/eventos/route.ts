@@ -9,7 +9,7 @@ type CategoriaEvento = Exclude<Categoria, 'Todos'>;
 // Imágenes por defecto según categoría
 const imagenesPorCategoria: Record<CategoriaEvento, string> = {
   Académicos: 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8d9b64f4-18b1-4183-8598-a0520a34a4e0.jpg',
-  Culturales: 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8424ffc3-1547-4313-a45c-92085ea3273a.jpg',
+  Culturales: 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_42dbeeaa-8abb-4162-a0c7-d11855f2a132.jpg',
   Deportivos: 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_e25eaacf-0471-4668-aa28-7624012722eb.jpg',
   Comerciales: 'https://miaoda-site-img.s3cdn.medo.dev/images/KLing_8d9b64f4-18b1-4183-8598-a0520a34a4e0.jpg',
 };

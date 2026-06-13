@@ -16,6 +16,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'miaoda-conversation-file.s3cdn.medo.dev',
       },
+      {
+        protocol: 'https',
+        hostname: 'encrypted-tbn0.gstatic.com',
+      },
     ],
     unoptimized: true,
   },
